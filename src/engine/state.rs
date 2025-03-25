@@ -7,6 +7,10 @@ pub struct KeyboardState {
 }
 
 impl KeyboardState {
+	pub fn new() -> Self {
+		Self::default()
+	}
+
 	pub fn update(&mut self, key: &rdev::Key, pressed: bool) {
 		match key {
 			rdev::Key::ShiftLeft | rdev::Key::ShiftRight => self.shift = pressed,
@@ -21,5 +25,12 @@ impl KeyboardState {
 
 	pub fn is_uppercase(&self) -> bool {
 		self.shift ^ self.capslock
+	}
+
+	pub fn reset(&mut self) {
+		self.shift = false;
+		self.capslock = false;
+		self.alt = false;
+		self.ctrl = false;
 	}
 }
