@@ -6,7 +6,7 @@ pub fn parse_key(key: Key, state: &KeyboardState) -> Option<char> {
 	let shifted = state.is_uppercase();
 	use Key::*;
 	#[rustfmt::skip]
-    let c = match key {
+    let character = match key {
       //
       KeyA => 'a', KeyB => 'b', KeyC => 'c', KeyD => 'd', KeyE => 'e',
       KeyF => 'f', KeyG => 'g', KeyH => 'h', KeyI => 'i', KeyJ => 'j',
@@ -39,11 +39,10 @@ pub fn parse_key(key: Key, state: &KeyboardState) -> Option<char> {
       Slash => if state.shift { '?' } else { '/' },
       BackQuote => if state.shift { '~' } else { '`' },
 
-
       Space => ' ',
-
       _ => return None,
     };
 
-	Some(if shifted { c.to_ascii_uppercase() } else { c })
+	let character = if shifted { character.to_ascii_uppercase() } else { character };
+	Some(character)
 }
