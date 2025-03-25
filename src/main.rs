@@ -1,88 +1,76 @@
-use enigo::{Enigo, Keyboard, Settings};
-use rdev::{listen, Event, EventType, Key};
-use std::{
-	sync::{Arc, Mutex},
-	thread,
-	time::Duration,
-};
+use std::sync::{Arc, Mutex};
 
+use ai::llm::{self};
+use engine::{parser::parse_key, state::KeyboardState, Engine};
+use rdev::{listen, simulate, Event, EventType, Key};
+use tokio::sync::mpsc;
 mod ai;
 mod engine;
-mod state;
 mod typer;
-fn key_to_char(key: Key) -> Option<char> {
-	match key {
-		Key::Num0 => Some('0'),
-		Key::Num1 => Some('1'),
-		Key::Num2 => Some('2'),
-		Key::Num3 => Some('3'),
-		Key::Num4 => Some('4'),
-		Key::Num5 => Some('5'),
-		Key::Num6 => Some('6'),
-		Key::Num7 => Some('7'),
-		Key::Num8 => Some('8'),
-		Key::Num9 => Some('9'),
-		Key::KeyA => Some('a'),
-		Key::KeyB => Some('b'),
-		Key::KeyC => Some('c'),
-		Key::KeyD => Some('d'),
-		Key::KeyE => Some('e'),
-		Key::KeyF => Some('f'),
-		Key::KeyG => Some('g'),
-		Key::KeyH => Some('h'),
-		Key::KeyI => Some('i'),
-		Key::KeyJ => Some('j'),
-		Key::KeyK => Some('k'),
-		Key::KeyL => Some('l'),
-		Key::KeyM => Some('m'),
-		Key::KeyN => Some('n'),
-		Key::KeyO => Some('o'),
-		Key::KeyP => Some('p'),
-		Key::KeyQ => Some('q'),
-		Key::KeyR => Some('r'),
-		Key::KeyS => Some('s'),
-		Key::KeyT => Some('t'),
-		Key::KeyU => Some('u'),
-		Key::KeyV => Some('v'),
-		Key::KeyW => Some('w'),
-		Key::KeyX => Some('x'),
-		Key::KeyY => Some('y'),
-		Key::KeyZ => Some('z'),
-		Key::Space => Some(' '),
 
-		_ => None,
-	}
-}
+#[tokio::main]
+async fn main() {
+	let engine = Arc::new(Mutex::new(Engine::new()));
+	let (tx, mut rx) = mpsc::channel::<()>(1);
+	let engine_clone = Arc::clone(&engine);
 
-fn main() {
-	let buffer = Arc::new(Mutex::new(String::new()));
-	let buffer_clone = Arc::clone(&buffer);
-
-	thread::spawn(move || loop {
-		thread::sleep(Duration::from_secs(2));
-
-		let text = {
-			let mut buf = buffer_clone.lock().unwrap();
-			if buf.is_empty() {
-				continue;
+	// Task async para processar sugestões
+	tokio::spawn(async move {
+		while rx.recv().await.is_some() {
+			let prompt = {
+				let eng = engine_clone.lock().unwrap();
+				if eng.is_empty() {
+					continue;
+				}
+				eng.get_text().to_string()
+			};
+			println!("prompt: {}", prompt);
+			match llm::generate_suggestion(&prompt).await {
+				Ok(suggestion) => {
+					println!("suggestion: {}", suggestion);
+					typer::type_text(&suggestion);
+					let mut eng = engine_clone.lock().unwrap();
+					eng.apply_suggestion(&suggestion);
+				}
+				Err(error) => eprintln!("hmmm, something went wrong with the llm: {:?}", error),
 			}
-			let out = buf.clone();
-			buf.clear();
-			out
-		};
-		println!("📤 texto capturado: {}", text);
-		let mut enigo = Enigo::new(&Settings::default()).unwrap();
-		enigo.text(&text).unwrap();
+		}
 	});
 
-	// Captura global
+	// Escuta de teclado
 	if let Err(error) = listen(move |event: Event| {
-		if let EventType::KeyPress(key) = event.event_type {
-			if let Some(c) = key_to_char(key) {
-				buffer.lock().unwrap().push(c);
+		static mut KEY_STATE: Option<KeyboardState> = None;
+		unsafe {
+			let key_state = KEY_STATE.get_or_insert_with(KeyboardState::new);
+			match event.event_type {
+				EventType::KeyPress(key) => match key {
+					Key::Tab => {
+						engine.lock().unwrap().in_suggestion = true;
+						let _ = tx.try_send(());
+					}
+					Key::Backspace => {
+						let mut eng = engine.lock().unwrap();
+						if let Some(removed) = eng.backspace() {
+							for _ in 0..removed.len() {
+								let _ = simulate(&EventType::KeyPress(Key::Backspace));
+							}
+						}
+					}
+					_ => {
+						key_state.update(&key, true);
+						if let Some(c) = parse_key(key, key_state) {
+							key_state.reset();
+							engine.lock().unwrap().push_char(c);
+						}
+					}
+				},
+				EventType::KeyRelease(key) => {
+					key_state.update(&key, false);
+				}
+				_ => {}
 			}
 		}
 	}) {
-		println!("Erro ao escutar eventos: {:?}", error)
+		eprintln!("Erro ao escutar eventos: {:?}", error);
 	}
 }
