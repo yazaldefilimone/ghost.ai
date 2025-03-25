@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-core-foundation = "0.10.0"
-core-graphics = "0.24.0"
 enigo = "0.3.0"
 rdev = "0.5.3"
 rig-core = "0.10.0"
+tokio = { version = "1", features = ["full"] }
