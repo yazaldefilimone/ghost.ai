@@ -1,73 +1,97 @@
+use ai::{ctx::Context, llm};
+use rdev::{listen, Event, EventType, Key, Keyboard, KeyboardState};
 use std::sync::{Arc, Mutex};
-
-use ai::llm::{self};
-use engine::{parser::parse_key, state::KeyboardState, Engine};
-use rdev::{listen, simulate, Event, EventType, Key};
 use tokio::sync::mpsc;
+
 mod ai;
 mod engine;
 mod typer;
 
 #[tokio::main]
 async fn main() {
-	let engine = Arc::new(Mutex::new(Engine::new()));
-	let (tx, mut rx) = mpsc::channel::<()>(1);
-	let engine_clone = Arc::clone(&engine);
+	let ctx = Arc::new(Mutex::new(Context::new()));
+	let buffer = Arc::new(Mutex::new(String::new()));
+	let keyboard = Arc::new(Mutex::new(Keyboard::new().unwrap()));
 
-	// Task async para processar sugestões
+	let (tx, mut rx) = mpsc::channel::<()>(10);
+
+	// Task de sugestão
+	let ctx_for_task = Arc::clone(&ctx);
 	tokio::spawn(async move {
-		while rx.recv().await.is_some() {
-			let prompt = {
-				let eng = engine_clone.lock().unwrap();
-				if eng.is_empty() {
-					continue;
-				}
-				eng.get_text().to_string()
+		while let Some(_) = rx.recv().await {
+			println!("[TASK] Recebido trigger");
+			let context_data = {
+				let ctx_locked = ctx_for_task.lock().unwrap();
+				ctx_locked.clone()
 			};
-			println!("prompt: {}", prompt);
-			match llm::generate_suggestion(&prompt).await {
+
+			match llm::generate_suggestion(&context_data).await {
 				Ok(suggestion) => {
-					println!("suggestion: {}", suggestion);
+					println!("[TASK] Sugestão: {}", suggestion);
+
 					typer::type_text(&suggestion);
-					let mut eng = engine_clone.lock().unwrap();
-					eng.apply_suggestion(&suggestion);
+					let mut ctx_locked = ctx_for_task.lock().unwrap();
+					ctx_locked.current_input.push_str(&suggestion);
 				}
-				Err(error) => eprintln!("hmmm, something went wrong with the llm: {:?}", error),
+				Err(error) => {
+					eprintln!("[TASK] Erro ao gerar sugestão: {:?}", error);
+				}
 			}
 		}
+
+		println!("[TASK] Canal fechado. Encerrando.");
 	});
 
-	// Escuta de teclado
+	// Captura de eventos de teclado
+	let buffer_clone = Arc::clone(&buffer);
+	let ctx_clone = Arc::clone(&ctx);
+	let keyboard_clone = Arc::clone(&keyboard);
+	let tx_clone = tx.clone();
+
 	if let Err(error) = listen(move |event: Event| {
-		static mut KEY_STATE: Option<KeyboardState> = None;
-		unsafe {
-			let key_state = KEY_STATE.get_or_insert_with(KeyboardState::new);
-			match event.event_type {
-				EventType::KeyPress(key) => match key {
-					Key::Tab => {
-						engine.lock().unwrap().in_suggestion = true;
-						let _ = tx.try_send(());
-					}
-					Key::Backspace => {
-						let mut eng = engine.lock().unwrap();
-						if let Some(removed) = eng.backspace() {
-							for _ in 0..removed.len() {
-								let _ = simulate(&EventType::KeyPress(Key::Backspace));
+		let mut keyboard = keyboard_clone.lock().unwrap();
+
+		match event.event_type {
+			EventType::KeyPress(key) => match key {
+				Key::Tab => {
+					println!("[KEY] TAB pressionado");
+					if let (Ok(buf), Ok(mut ctx_guard)) = (buffer_clone.lock(), ctx_clone.lock()) {
+						ctx_guard.replace_input(buf.clone());
+
+						let tx_clone = tx_clone.clone();
+						tokio::spawn(async move {
+							if let Err(err) = tx_clone.send(()).await {
+								eprintln!("[KEY] Erro ao enviar trigger: {:?}", err);
 							}
-						}
+						});
 					}
-					_ => {
-						key_state.update(&key, true);
-						if let Some(c) = parse_key(key, key_state) {
-							key_state.reset();
-							engine.lock().unwrap().push_char(c);
-						}
-					}
-				},
-				EventType::KeyRelease(key) => {
-					key_state.update(&key, false);
 				}
-				_ => {}
+				Key::Return | Key::KpReturn => {
+					if let (Ok(mut buf), Ok(mut ctx_guard)) = (buffer_clone.lock(), ctx_clone.lock()) {
+						println!("[retun] current: {}, buf: {}", ctx_guard.current_input, buf);
+						ctx_guard.replace_input(buf.clone());
+						buf.clear();
+					}
+				}
+				Key::Backspace => {
+					if let Ok(mut buf) = buffer_clone.lock() {
+						buf.pop();
+					}
+				}
+				_ => {
+					if let Some(text) = keyboard.add(&EventType::KeyPress(key)) {
+						if let Ok(mut buf) = buffer_clone.lock() {
+							buf.push_str(&text);
+						}
+					}
+				}
+			},
+			_ => {
+				if let Some(text) = keyboard.add(&event.event_type) {
+					if let Ok(mut buf) = buffer_clone.lock() {
+						buf.push_str(&text);
+					}
+				}
 			}
 		}
 	}) {
