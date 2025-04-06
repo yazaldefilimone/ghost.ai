@@ -1,4 +1,7 @@
-use std::sync::{atomic::Ordering, Arc};
+use std::{
+	sync::{atomic::Ordering, Arc},
+	thread,
+};
 
 use rdev::{Event, EventType, Key, KeyboardState};
 use tokio::sync::mpsc::{error::TrySendError, Sender};
@@ -10,14 +13,16 @@ use super::typer::Typer;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub async fn listen(state: Arc<SharedState>, trigger_tx: Sender<()>) {
-	let result = rdev::listen(move |event| {
-		if let Err(err) = keyboard_event(&state, &trigger_tx, event) {
-			eprintln!("[keyboard] failed to handle keyboard event, reason: '{}'", err);
+	thread::spawn(move || {
+		let result = rdev::listen(move |event| {
+			if let Err(err) = keyboard_event(&state, &trigger_tx, event) {
+				eprintln!("[keyboard] failed to handle keyboard event, reason: '{}'", err);
+			}
+		});
+		if result.is_err() {
+			eprintln!("[keyboard] failed to listen for keyboard events");
 		}
 	});
-	if result.is_err() {
-		eprintln!("[keyboard] failed to listen for keyboard events");
-	}
 }
 
 fn keyboard_event(state: &Arc<SharedState>, trigger_tx: &Sender<()>, event: Event) -> Result<()> {

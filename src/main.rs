@@ -36,13 +36,9 @@ async fn main() {
 	let ai_state = Arc::clone(&state);
 	let listen_state = Arc::clone(&state);
 
-	tokio::spawn(async move {
-		runtime::ai::stream_suggestion(ai_state, trigger_rx).await;
-		// runtime::ai::complete_suggestion(ai_state, trigger_rx).await;
-	});
-	tokio::spawn(async move {
-		runtime::listen(listen_state, trigger_tx).await;
-	});
+	// runtime::ai::complete_suggestion(ai_state, trigger_rx).await;
+	runtime::ai::stream_suggestion(ai_state, trigger_rx).await;
+	runtime::listen(listen_state, trigger_tx).await;
 
 	let stdin = BufReader::new(io::stdin());
 	let mut lines = stdin.lines();
