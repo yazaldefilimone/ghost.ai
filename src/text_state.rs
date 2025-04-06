@@ -34,7 +34,7 @@ impl TextState {
 	}
 
 	pub fn apply_suggestion(&self) -> String {
-		self.typed.clone() + &self.suggestion
+		format!("{}{}", self.typed, self.suggestion)
 	}
 
 	pub fn get_typed(&self) -> &str {

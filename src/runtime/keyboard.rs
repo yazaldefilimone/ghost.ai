@@ -34,17 +34,26 @@ fn keyboard_event(state: &Arc<SharedState>, trigger_tx: &Sender<()>, event: Even
 	let mut memory = state.memory.lock().unwrap();
 	if let EventType::KeyPress(key) = event.event_type {
 		match key {
-			Key::Tab => match trigger_tx.try_send(()) {
-				Err(TrySendError::Full(_)) => {
-					eprintln!("[keybard] waiting for llm to finish");
+			Key::Tab => {
+				if text_state.get_typed().is_empty() {
+					return Ok(());
 				}
-				Err(TrySendError::Closed(_)) => {
-					eprintln!("[keybard] trigger channel closed");
+				if text_state.has_suggestion() {
+					let typed = text_state.apply_typed();
+					memory.insert_content(typed)
 				}
-				Ok(_) => {
-					println!("[keybard] tab: '{}'", text_state.get_typed());
+				match trigger_tx.try_send(()) {
+					Err(TrySendError::Full(_)) => {
+						eprintln!("[keybard] waiting for llm to finish");
+					}
+					Err(TrySendError::Closed(_)) => {
+						eprintln!("[keybard] trigger channel closed");
+					}
+					Ok(_) => {
+						println!("[keybard] tab: '{}'", text_state.get_typed());
+					}
 				}
-			},
+			}
 			Key::Backspace => {
 				let times = text_state.backspace();
 				let mut typer = Typer::new();

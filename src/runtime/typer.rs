@@ -29,7 +29,7 @@ impl Typer {
 		if times <= 1 {
 			return;
 		}
-		let delay = Duration::from_millis(100);
+		let delay = Duration::from_millis(15);
 		for _ in 1..times {
 			if simulate(&EventType::KeyPress(Key::Backspace)).is_err() {
 				eprintln!("[typer] failed to backspace");

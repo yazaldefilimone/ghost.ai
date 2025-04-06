@@ -45,3 +45,15 @@ impl MemoryStore {
 		scored.into_iter().take(k).map(|(_, c)| c).collect()
 	}
 }
+
+impl std::fmt::Display for MemoryEntry {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{}", self.content)
+	}
+}
+
+impl std::fmt::Display for MemoryStore {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{}", self.entries.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n-  "))
+	}
+}
