@@ -13,16 +13,16 @@ use rig::streaming::{StreamingChoice, StreamingPrompt};
 		llama3.2:latest                2.0 GB
 		llama3.1:latest                4.7 GB
 */
-const MODEL: &str = "llama3.1:latest";
+const MODEL: &str = "mistral:7b-instruct";
 
 fn create_preamble(history: String) -> String {
 	r#"
 	You are an autocomplete assistant.
-RULES:
-- Only complete the user's sentence.
-- NEVER repeat or rewrite what was already typed.
-- Your entire output will be inserted directly after the last word.
-- If it is unclear how to continue, output nothing.
+  RULES:
+  - Only complete the user's sentence.
+  - NEVER repeat or rewrite what was already typed.
+  - Your entire output will be inserted directly after the last word.
+  - If it is unclear how to continue, output nothing.
 "#
 	.to_string()
 }
@@ -40,9 +40,33 @@ pub async fn stream_completion<F>(prompt: &str, history: String, mut on_chunk: F
 where
 	F: FnMut(String) + Send + 'static,
 {
-	let client = Client::new();
+	// let client = Client::new();
+	let client = Client::from_url("https://4def-197-235-234-108.ngrok-free.app");
 	let agent = client.agent(MODEL).preamble(&create_preamble(history));
 
+	// let prompt_cursor = format!("{prompt}");
+	let mut stream = agent.build().stream_prompt(prompt).await?;
+	while let Some(chunk_result) = stream.next().await {
+		match chunk_result {
+			Ok(StreamingChoice::Message(text)) => {
+				on_chunk(text.to_owned());
+			}
+			Ok(_) => {}
+			Err(reason) => {
+				eprintln!("[llm] failed to stream completion, reason: '{}'", reason);
+				break;
+			}
+		}
+	}
+	Ok(())
+}
+
+pub async fn ask_stream<F>(prompt: &str, mut on_chunk: F) -> Result<()>
+where
+	F: FnMut(String) + Send + 'static,
+{
+	let client = Client::new();
+	let agent = client.agent(MODEL);
 	// let prompt_cursor = format!("{prompt}");
 	let mut stream = agent.build().stream_prompt(prompt).await?;
 	while let Some(chunk_result) = stream.next().await {
