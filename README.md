@@ -1,52 +1,69 @@
 
-ghost.ai is a "second brain" that helps you remember everything you see and do on your computer. 
-> blindly influenced by [Rauch's post](https://x.com/rauchg/status/1903528336241861113).
+**ghost.ai** is a _"second brain"_ that helps you remember everything you see and do on your computer.  
+> Inspired by [Rauch’s post](https://x.com/rauchg/status/1903528336241861113)
 
-It assists you during both **writing** and **recall** — whether you're trying to finish a sentence using something you just read, or asking:
+It supports you in two main ways: **writing** and **recall**.
 
-> "I read a post from Rauch on X about the best technologies humans have invented... but I don't remember exactly what it said."
+For example:
 
-ghost.ai can remind you — based on what was on your screen at the time.
+> You’re trying to finish a sentence using something you just read.  
+> Or you ask:  
+> _"I read a post from Rauch on X about the best technologies humans have invented... but I don't remember exactly what it said."_
 
-or maybe you're typing a message after reading an article — ghost.ai can recognize the pattern and **autocomplete** your sentence based on the article you just saw.
+ghost.ai can remind you — based on what was on your screen at that time.
+
+Or maybe you’re typing a message after reading an article.  
+ghost.ai can recognize the pattern and **autocomplete** your sentence — using the content you just saw.
+
+
 
 
 ## Status
 
-**this is an early prototype.**
+**This is an early prototype.**
 
-the first version (see branch `prototype-v1`) only listened to keyboard input.
+- The first version (`prototype-v1`) only tracked keyboard input.  
+- This version adds a **vision system**:
+  - Captures screen frames  
+  - Extracts text using OCR  
+  - Stores the result in memory for future use  
 
-this version introduces a **vision system** that captures screen frames, extracts text using OCR, and stores the result in memory as context for later use.
+Note: This is experimental software.  
+It does **not** yet ignore sensitive windows like password fields or private messages.
 
-NB: This is experimental software. It does **not** yet ignore sensitive windows like password fields or private messages.
 
----
 
-## compatibility
 
-- tested on **macOS** only.  
-- should work on most Unix-based systems, but may require minor adjustments.  
-- OCR models currently support **english only**.
+## Compatibility
 
----
+- Tested on **macOS** only  
+- Should work on most Unix-based systems (may need small changes)  
+- OCR currently supports **English only**
+
+
+
 
 ## Features
 
-- screen capture and OCR (vision)
-- text memory with embeddings
-- terminal chat to ask what you've seen before
-- keyboard and mouse tracking (tracker)
-- simple integration with [Ollama](https://ollama.com/) for local LLM inference
+- Screen capture + OCR (Vision)
+- Text memory with embeddings
+- Terminal chat to ask: _"What did I see before?"_
+- Keyboard + mouse tracking
+- Simple integration with [Ollama](https://ollama.com/) for local LLMs
 
----
+
+
 
 ## Installation
+
+Clone the repo:
 
 ```bash
 git clone https://github.com/yazaldefilimone/ghost.ai.git
 cd ghost.ai
 ```
+
+---
 
 ### 1. Install Rust
 
@@ -54,9 +71,13 @@ cd ghost.ai
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-### 2. download OCR models
 
-ghost.ai uses neural networks for OCR. Run the script:
+
+
+### 2. Download OCR models
+
+ghost.ai uses neural networks for OCR.  
+Run this script:
 
 ```bash
 ./scripts/download-models.sh
@@ -64,16 +85,19 @@ ghost.ai uses neural networks for OCR. Run the script:
 
 This will download:
 
-- `text-detection.rten`
-- `text-recognition.rten`
+- `text-detection.rten`  
+- `text-recognition.rten`  
 
-These are placed in the `./models/` directory.
+They will be saved in the `./models/` folder.
 
-### 3. Install and Setup Ollama
 
-make sure [Ollama](https://ollama.com/) is installed.
 
-the default LLM is:
+
+### 3. Install and setup Ollama
+
+Make sure [Ollama](https://ollama.com/) is installed.
+
+By default, ghost.ai uses:
 
 ```bash
 ollama run mistral:7b-instruct
@@ -81,36 +105,38 @@ ollama run mistral:7b-instruct
 
 You can change the model in `src/llm.rs` (`const MODEL`).
 
----
+
+
 
 ## Running
+
+Start the system:
 
 ```bash
 cargo run
 ```
 
-after launch, ghost.ai will start monitoring your screen.
+ghost.ai will begin monitoring your screen.
 
-- on an M3 Mac with 16 GB RAM, each frame takes ~10 seconds to process.
+- On an M3 Mac with 16 GB RAM, each frame takes about **10 seconds** to process.
 
----
+
 
 ## Usage
 
-- open any window or document (like a browser, PDF, or terminal)
-- ghost.ai captures and stores what you see
-- you can ask the system later:  
-  *"What did I see when I opened the article about X?"*  
-- you can also get **autocomplete suggestions** while typing, based on that context
+1. Open any window (browser, PDF, terminal, etc.)
+2. ghost.ai captures what’s visible
+3. Later, you can ask:  
+   _"What did I see when I opened the article about X?"_
+4. While typing, ghost.ai may suggest **autocompletions** based on your recent screen content
 
----
 
-## Plans
 
-- support for cloud LLMs (OpenAI, Claude, etc.)
-- filter sensitive/private windows automatically
-- faster screen capture + batch inference
-- audio capture — with toggle to disable vision/audio
-- local web chat interface
-- multilingual OCR support
----
+## Roadmap
+
+- Support for cloud LLMs (OpenAI, Claude, etc.)
+- Automatically skip sensitive/private windows
+- Faster screen capture + batch processing
+- Audio capture (with on/off toggle)
+- Local web chat interface
+- Multilingual OCR support
