@@ -1,8 +1,8 @@
 use xcap::{Monitor, Window};
 
-use super::DynamicImage;
+use super::FrameCaptured;
 
-pub fn capture_monitor(monitor: &Monitor) -> DynamicImage {
+pub fn capture_monitor(monitor: &Monitor) -> FrameCaptured {
 	match monitor.capture_image() {
 		Ok(image) => image,
 		Err(err) => {
@@ -12,7 +12,7 @@ pub fn capture_monitor(monitor: &Monitor) -> DynamicImage {
 	}
 }
 
-pub fn capture_window(window: &Window) -> DynamicImage {
+pub fn capture_window(window: &Window) -> FrameCaptured {
 	match window.capture_image() {
 		Ok(image) => image,
 		Err(err) => {

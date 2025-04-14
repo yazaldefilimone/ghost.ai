@@ -14,7 +14,7 @@ impl WindowMetadata {
 }
 
 pub fn list_windows() -> Vec<Window> {
-	println!("[vision] listing windows");
+	// println!("[vision] listing windows");
 	match Window::all() {
 		Ok(windows) => windows,
 		Err(e) => {
@@ -26,7 +26,7 @@ pub fn list_windows() -> Vec<Window> {
 
 pub fn get_focused_window() -> Option<Window> {
 	let windows = list_windows();
-	println!("[vision] find focused window");
+	// println!("[vision] find focused window");
 	windows.into_iter().find(|w| w.is_focused().unwrap_or(false))
 }
 

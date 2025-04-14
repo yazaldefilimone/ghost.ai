@@ -10,7 +10,7 @@ pub fn hash_differs(left: &DynamicImage, right: &DynamicImage) -> bool {
 }
 
 fn windows_similar(left: &DynamicImage, right: &DynamicImage) -> bool {
-	println!("[vision.diff] try find similarity between windows");
+	// println!("[vision.diff] try find similarity between windows");
 	let left_image = left.to_rgba8();
 	let right_image = right.to_rgba8();
 	if left_image.dimensions() != right_image.dimensions() {

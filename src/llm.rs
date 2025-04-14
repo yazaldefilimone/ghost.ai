@@ -1,7 +1,12 @@
+use std::sync::Arc;
+
 use futures::StreamExt;
 use rig::completion::Prompt;
 use rig::providers::ollama::Client;
-use rig::streaming::{StreamingChoice, StreamingPrompt};
+use rig::streaming::{stream_to_stdout, StreamingChoice, StreamingPrompt};
+use tokio::sync::RwLock;
+
+use crate::memory::store::Store;
 
 /*
 		NAME                           SIZE
@@ -15,34 +20,78 @@ use rig::streaming::{StreamingChoice, StreamingPrompt};
 */
 const MODEL: &str = "mistral:7b-instruct";
 
-fn create_preamble(history: String) -> String {
+fn ask_preamble(prompt: &str) -> String {
 	r#"
-	You are an autocomplete assistant.
-  RULES:
-  - Only complete the user's sentence.
-  - NEVER repeat or rewrite what was already typed.
-  - Your entire output will be inserted directly after the last word.
-  - If it is unclear how to continue, output nothing.
+	You are a highly intelligent and helpful assistant that acts as the user's second brain.
+
+Your goal is to help the user remember, reflect on, and interact with what they’ve recently seen, typed, or read on their computer — including content captured from screenshots, window titles, and keyboard activity.
+
+<context>
+</context>
+
+Guidelines:
+- Use the context naturally, but **never mention the words "OCR", "screenshot", or that it was extracted automatically**.
+- Be careful interpreting the content — some text may be noisy or out of order.
+- Help the user make sense of what they might have seen or been doing based on the extracted text.
+- Be helpful, concise, and context-aware — suggest useful completions, reminders, or summaries.
+- If something is unclear or seems broken, it's okay to ignore or ask a clarifying question.
+- If the user references something vaguely (e.g., “what was that message?”), use context to infer likely references.
+- Use markdown formatting when useful, but keep answers short and readable.
+- Stay consistent with the tone and flow of the conversation.
+
+You are a trusted assistant that thinks alongside the user, powered by their digital memory.
 "#
 	.to_string()
 }
+
+fn create_preamble(history: String) -> String {
+	format!(
+		r#"
+You are a highly intelligent and helpful assistant acting as the user's second brain.
+
+<context>
+{history}
+</context>
+
+Your goal is to help the user recall anything they’ve seen or read on their screen. The <context> contains raw OCR-extracted text from screenshots of windows the user interacted with.
+
+Guidelines:
+- Assume the user is trying to remember something they recently saw.
+- The extracted text may be noisy or contain UI elements (e.g. tooltips, icons, buttons); focus on meaningful content such as paragraphs, labels, conversations, or documents.
+- Ignore elements that seem like part of the UI unless they look important or unique.
+- If the user asks a question, try to match relevant parts of the context and respond naturally.
+- Do not repeat or reformat the context unless necessary for clarity.
+- You are not just a summarizer — you are a memory engine.
+
+Always respond based on what’s present in the <context>. If unsure, say so clearly.
+"#
+	)
+}
+
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-pub async fn generate_completion(prompt: &str, history: String) -> Result<String> {
+pub async fn generate_completion(prompt: &str, store: Arc<RwLock<Store>>) -> Result<String> {
 	let client = Client::new();
-	let agent = client.agent(MODEL).preamble(&create_preamble(history));
+	let store = store.read().await;
+	let agent = client.agent(MODEL).preamble(&create_preamble(store.format_entries_as_context()));
 	let result = agent.build().prompt(prompt).await?;
-	println!("[llm] result: {result}");
+	// println!("[llm] result: {result}");
 	Ok(result.trim().to_string())
 }
 
-pub async fn stream_completion<F>(prompt: &str, history: String, mut on_chunk: F) -> Result<()>
+pub async fn stream_completion<F>(
+	prompt: &str,
+	store: Arc<RwLock<Store>>,
+	mut on_chunk: F,
+) -> Result<()>
 where
 	F: FnMut(String) + Send + 'static,
 {
-	// let client = Client::new();
-	let client = Client::from_url("https://4def-197-235-234-108.ngrok-free.app");
-	let agent = client.agent(MODEL).preamble(&create_preamble(history));
+	let client = Client::new();
+	let store = store.read().await;
+	let entries_text = store.format_entries_as_context();
+	// println!("[llm] entries_text: {entries_text}");
+	let agent = client.agent(MODEL).preamble(&create_preamble(entries_text));
 
 	// let prompt_cursor = format!("{prompt}");
 	let mut stream = agent.build().stream_prompt(prompt).await?;
@@ -61,25 +110,40 @@ where
 	Ok(())
 }
 
-pub async fn ask_stream<F>(prompt: &str, mut on_chunk: F) -> Result<()>
-where
-	F: FnMut(String) + Send + 'static,
-{
+pub async fn ask_stream(prompt: &str, store: Arc<RwLock<Store>>) -> Result<()> {
+	let store = store.read().await;
+	let entries_text = store.format_entries_as_context();
 	let client = Client::new();
-	let agent = client.agent(MODEL);
+	let agent = client.agent(MODEL).preamble(&create_preamble(entries_text)).temperature(0.5).build();
 	// let prompt_cursor = format!("{prompt}");
-	let mut stream = agent.build().stream_prompt(prompt).await?;
-	while let Some(chunk_result) = stream.next().await {
-		match chunk_result {
-			Ok(StreamingChoice::Message(text)) => {
-				on_chunk(text.to_owned());
-			}
-			Ok(_) => {}
-			Err(reason) => {
-				eprintln!("[llm] failed to stream completion, reason: '{}'", reason);
-				break;
-			}
+	let mut stream = agent.stream_prompt(prompt).await?;
+	stream_to_stdout(agent, &mut stream).await?;
+	Ok(())
+}
+
+use std::io::{self, Write};
+
+pub async fn chat_loop(store: Arc<RwLock<Store>>) -> Result<()> {
+	let stdin = io::stdin();
+	let mut stdout = io::stdout();
+	let mut input = String::new();
+
+	loop {
+		print!(">>> ");
+		stdout.flush()?;
+		input.clear();
+		stdin.read_line(&mut input)?;
+		let prompt = input.trim();
+
+		if prompt == "exit" || prompt == "quit" {
+			break;
 		}
+
+		// print!("ghost: ");
+		stdout.flush()?;
+		ask_stream(prompt, store.clone()).await?;
+		println!();
 	}
+
 	Ok(())
 }

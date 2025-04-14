@@ -65,6 +65,7 @@ fn keyboard_event(state: &Arc<SharedState>, trigger_tx: &Sender<()>, event: Even
 			}
 			key => {
 				if let Some(character) = keyboard.add(&EventType::KeyPress(key)) {
+					// println!("[keyboard] key: '{}'", character);
 					text_state.add_text(character.as_str());
 				}
 			}

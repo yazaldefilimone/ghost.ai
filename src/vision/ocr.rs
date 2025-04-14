@@ -31,12 +31,18 @@ impl TextEngine {
 		let rgb = image.into_rgb8();
 		let img_source = ImageSource::from_bytes(rgb.as_raw(), rgb.dimensions()).unwrap();
 		let ocr_input = self.inner.prepare_input(img_source).unwrap();
-		println!("[vision] detect words...");
+		// println!("[vision] detect words...");
 		let word_rects = self.inner.detect_words(&ocr_input).unwrap();
 		let line_rects = self.inner.find_text_lines(&ocr_input, &word_rects);
-		println!("[vision] recognize text...");
+		// println!("[vision] recognize text...");
 		let line_texts = self.inner.recognize_text(&ocr_input, &line_rects).unwrap();
 		let filtered_line_texts = line_texts.into_iter().flatten().filter(|l| l.to_string().len() > 1);
 		filtered_line_texts.map(|l| l.to_string()).collect()
+	}
+}
+
+impl Default for TextEngine {
+	fn default() -> Self {
+		Self::new()
 	}
 }

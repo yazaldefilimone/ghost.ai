@@ -30,7 +30,7 @@ given the text below identifies message... normally comes with the name pattern(
 type ImageResult<T> = Result<T, PromptError>;
 
 pub async fn summarize(image_info: &str) -> ImageResult<String> {
-	println!("[vision.llm] infer from image");
+	// println!("[vision.llm] infer from image");
 	let client = ollama::Client::new();
 	let agent = client.agent(MODEL).temperature(TEMPERATURE).preamble(PREAMBLE.trim()).build();
 	let response = agent.prompt(image_info).await?;
