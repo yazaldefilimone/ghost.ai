@@ -1,61 +1,64 @@
 #![allow(dead_code, unused_variables)]
 
+use channels::{Signal, BUFFER_SIZE};
+use memory::store::Store;
+use once_cell::sync::Lazy;
 use runtime::state::SharedState;
-use tokio::{
-	io::{self, AsyncBufReadExt, BufReader},
-	sync::mpsc,
-};
+use std::sync::{atomic::AtomicBool, Arc};
+use tokio::sync::{mpsc, RwLock};
 
+mod channels;
+mod console;
 mod embed;
 mod llm;
+mod memory;
 mod memory_store;
 mod platform;
 mod runtime;
+mod tasks;
 mod text_state;
-
-use once_cell::sync::Lazy;
-use std::{
-	process::exit,
-	sync::{
-		atomic::{AtomicBool, Ordering},
-		Arc,
-	},
-};
+mod tracker;
+mod vision;
+use crate::vision::ocr::TextEngine;
 
 pub static IS_PAUSED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-pub fn show_help() {
-	println!("commands: .mute / .unmute / .quit");
-	println!("ready. start typing...");
-	println!()
+
+fn create_text_engine() -> TextEngine {
+	TextEngine::new()
+}
+
+pub static OCR_ENGINE: Lazy<TextEngine> = Lazy::new(create_text_engine);
+
+#[inline(always)]
+pub fn get_text_engine() -> &'static TextEngine {
+	&OCR_ENGINE
 }
 
 #[tokio::main]
 async fn main() {
-	let (trigger_tx, trigger_rx) = mpsc::channel::<()>(1);
+	let store = Arc::new(RwLock::new(Store::new()));
 	let state = Arc::new(SharedState::new());
-	let ai_state = Arc::clone(&state);
 	let listen_state = Arc::clone(&state);
+	let store_embed = Arc::clone(&store);
+	let store_vision = Arc::clone(&store);
 
-	// runtime::ai::complete_suggestion(ai_state, trigger_rx).await;
-	runtime::ai::stream_suggestion(ai_state, trigger_rx).await;
-	runtime::listen(listen_state, trigger_tx).await;
+	let (vision_sender, vision_receiver) = mpsc::channel::<Signal>(BUFFER_SIZE);
+	let (embed_sender, embed_receiver) = mpsc::channel::<Signal>(BUFFER_SIZE);
+	let (llm_sender, llm_receiver) = mpsc::channel::<Signal>(BUFFER_SIZE);
 
-	let stdin = BufReader::new(io::stdin());
-	let mut lines = stdin.lines();
-	show_help();
-	while let Ok(Some(line)) = lines.next_line().await {
-		match line.trim() {
-			".mute" | ".m" => {
-				IS_PAUSED.store(true, Ordering::SeqCst);
-				println!("muted, type '.unmute' to unmute");
-			}
-			".unmute" | ".u" => {
-				IS_PAUSED.store(false, Ordering::SeqCst);
-				println!("unmuted, type '.mute' to mute");
-			}
-			".quit" | ".q" => exit(0),
-			".help" | ".h" => show_help(),
-			_ => {}
-		}
-	}
+	tasks::tracker::run(vision_sender, llm_sender, listen_state).await;
+
+	// tasks::vision::run(vision_receiver, embed_sender, store_vision).await;
+	// tasks::embed::run(embed_receiver, store_embed).await;
+	tokio::spawn(async move {
+		tasks::vision::run(vision_receiver, embed_sender, store_vision).await;
+	});
+
+	tokio::spawn(async move {
+		tasks::embed::run(embed_receiver, store_embed).await;
+	});
+
+	llm::chat_loop(store.clone()).await.unwrap();
+	// let ai_state = Arc::clone(&state);
+	// runtime::ai::stream_suggestion(ai_state, store, llm_receiver).await;
 }

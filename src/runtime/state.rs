@@ -41,20 +41,3 @@ impl SharedState {
 		self.set_muted(false);
 	}
 }
-
-pub struct ScopedMute<'a> {
-	state: &'a SharedState,
-}
-
-impl<'a> ScopedMute<'a> {
-	pub fn new(state: &'a SharedState) -> Self {
-		state.mute();
-		Self { state }
-	}
-}
-
-impl Drop for ScopedMute<'_> {
-	fn drop(&mut self) {
-		self.state.unmute();
-	}
-}

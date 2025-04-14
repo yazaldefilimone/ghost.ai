@@ -11,8 +11,18 @@ rig-core = "0.10.0"
 serde = "1.0.219"
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
-parking_lot = "0.12"
+# parking_lot = "0.12"
 once_cell = "1.21.3"
+# screenshots = "0.8.10"
+xcap = "0.4.1"
+fs_extra = "1.3.0"
+base64 = "0.22.1"
+image = "0.25.6"
+arboard = "3.5.0"
+ocrs = "0.10.0"
+rten = "0.16.0"
+blake3 = "1.8.1"
+chrono = "0.4.40"
 
 [profile.release]
 lto = "fat"       # Link Time Optimization, "fat" aplica otimizações mais agressivas
@@ -28,3 +38,8 @@ lto = "thin"            # Faster compile time with thin lto
 debug-assertions = true # Make sure `debug_assert!`s pass
 opt-level = "z"         # minify
 strip = true
+[profile.dev.package."ocrs"]
+opt-level = 3
+
+[profile.dev.package."rten"]
+opt-level = 3
