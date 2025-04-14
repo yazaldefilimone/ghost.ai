@@ -1,6 +1,6 @@
 
 **ghost.ai** is a _"second brain"_ that helps you remember everything you see and do on your computer.  
-> Inspired by [Rauch’s post](https://x.com/rauchg/status/1903528336241861113)
+> Blindly influenced by [Rauch’s post](https://x.com/rauchg/status/1903528336241861113)
 
 It supports you in two main ways: **writing** and **recall**.
 
