@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rig::{providers::ollama, streaming::StreamingPrompt};
+// use rig::{providers::ollama, streaming::StreamingPrompt};
 use tokio::sync::{mpsc::Receiver, RwLock};
 
 use crate::{

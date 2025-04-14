@@ -4,10 +4,7 @@ use channels::{Signal, BUFFER_SIZE};
 use memory::store::Store;
 use once_cell::sync::Lazy;
 use runtime::state::SharedState;
-use std::{
-	sync::{atomic::AtomicBool, Arc},
-	thread,
-};
+use std::sync::{atomic::AtomicBool, Arc};
 use tokio::sync::{mpsc, RwLock};
 
 mod channels;
@@ -57,12 +54,9 @@ async fn main() {
 		tasks::vision::run(vision_receiver, embed_sender, store_vision).await;
 	});
 
-	// Run embed task
 	tokio::spawn(async move {
 		tasks::embed::run(embed_receiver, store_embed).await;
 	});
-
-	// Create streaming agent with a single context prompt
 
 	llm::chat_loop(store.clone()).await.unwrap();
 	// let ai_state = Arc::clone(&state);
