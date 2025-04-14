@@ -110,6 +110,11 @@ You can change the model in `src/llm.rs` (`const MODEL`).
 
 ## Running
 
+1. allow app(terminal ou IDE) to control your computer(include record screen)
+
+![CleanShot 2025-04-14 at 14 11 39@2x](https://github.com/user-attachments/assets/1fb50806-af62-4a44-9679-5ebbf6378556)
+
+
 Start the system:
 
 ```bash
@@ -119,6 +124,7 @@ cargo run
 ghost.ai will begin monitoring your screen.
 
 - On an M3 Mac with 16 GB RAM, each frame takes about **10 seconds** to process.
+
 
 
 
