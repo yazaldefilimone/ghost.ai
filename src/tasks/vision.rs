@@ -1,48 +1,76 @@
 use std::sync::Arc;
 
-use tokio::sync::RwLock;
+use chrono::Utc;
+use sea_orm::{ActiveValue::Set, DbConn};
 
 use crate::{
-	channels::{Signal, SignalReceiver, SignalSender},
+	database::{ActiveModel, Model},
 	get_text_engine,
-	memory::{entry::Entry, store::Store},
-	vision::{capture::capture_window, window::get_focused_window},
+	security::contains_skip_security_pattern,
+	settings::loader,
+	signal::{Extract, Signal, SignalReceiver, SignalSender},
+	vision::{capture, window},
+	vision_error, vision_info,
 };
 
-pub async fn run(
-	mut vision_receiver: SignalReceiver,
-	embed_sender: SignalSender,
-	store: Arc<RwLock<Store>>,
+pub async fn start_vision_listener(
+	mut receiver: SignalReceiver,
+	extract_sender: SignalSender,
+	db: Arc<DbConn>,
 ) {
-	while let Some(signal) = vision_receiver.recv().await {
-		match signal {
-			Signal::ForceCapture => {
-				if let Some(window) = get_focused_window() {
-					let image = capture_window(&window);
+	let settings = loader::current_settings();
 
-					let mut entry = Entry::new(image.clone())
-						.with_window_title(window.title().unwrap_or_default())
-						.with_app_name(window.app_name().unwrap_or_default());
+	while let Some(Signal::ForceCapture) = receiver.recv().await {
+		vision_info!("capture requested");
+		let Some(window) = window::lookup_focused_window() else {
+			vision_info!("no focused window");
+			continue;
+		};
 
-					let extracted_lines = get_text_engine().recognize(image.into());
-					entry = entry.with_vector_text(extracted_lines);
-
-					// println!("[vision] new entry: {}", entry);
-
-					let index = store.write().await.add(entry);
-
-					if let Err(err) = embed_sender.try_send(Signal::Embed(index)) {
-						eprintln!("[vision] failed to send embed signal: {err}");
-					}
-				} else {
-					eprintln!("[vision] no focused window found");
-				}
-			}
-			Signal::SoftCapture => {
-				// Futuramente: capturar só se houver scroll, mouse move etc.
-				println!("[vision] soft capture triggered");
-			}
-			_ => {}
+		let app = window.app_name().unwrap_or_default();
+		if settings.vision.skip_app(&app) {
+			vision_info!("skipping app: '{}'", app);
+			continue;
 		}
+
+		let title = window.title().unwrap_or_default();
+		if contains_skip_security_pattern(&title) {
+			vision_info!("skipping sensitive: '{} - {}'", app, title);
+			continue;
+		}
+
+		let already_seen = Model::find_by_window_title_and_app(&db, &app, &title).await;
+		if !already_seen.is_empty() {
+			vision_info!("duplicate skipped: '{} - {}'", app, title);
+			continue;
+		}
+
+		let frame = capture::capture_window(&window);
+		let extract = Extract::new(app, title, frame);
+		if let Err(err) = extract_sender.try_send(Signal::Extract(extract)) {
+			vision_error!("can't send to extract: {err}");
+		}
+	}
+}
+
+pub async fn start_extract_listener(mut extract_receiver: SignalReceiver, db: Arc<DbConn>) {
+	while let Some(Signal::Extract(entry)) = extract_receiver.recv().await {
+		vision_info!("extracting text...");
+
+		let frame = entry.frame.clone();
+		let lines = get_text_engine().recognize(frame.into());
+		let text = lines.join("\n");
+		let now = Utc::now().naive_utc();
+
+		let record = ActiveModel {
+			app_name: Set(Some(entry.app_name)),
+			window_title: Set(Some(entry.window_title)),
+			extracted_text: Set(text),
+			created_at: Set(now),
+			updated_at: Set(now),
+			..Default::default()
+		};
+		let _ = Model::insert_entry(&db, record).await;
+		vision_info!("memoory saved.");
 	}
 }

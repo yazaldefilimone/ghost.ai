@@ -1,23 +1,22 @@
-#![allow(dead_code, unused_variables)]
-
-use channels::{Signal, BUFFER_SIZE};
-use memory::store::Store;
 use once_cell::sync::Lazy;
-use runtime::state::SharedState;
+use signal::{Signal, BUFFER_SIZE};
 use std::sync::{atomic::AtomicBool, Arc};
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::mpsc;
 
-mod channels;
+mod api;
 mod console;
+mod constants;
+mod database;
 mod embed;
 mod llm;
-mod memory;
-mod memory_store;
-mod platform;
-mod runtime;
+mod logger;
+mod security;
+mod settings;
+mod signal;
 mod tasks;
-mod text_state;
-mod tracker;
+mod text_buffer;
+mod typer;
+mod utils;
 mod vision;
 use crate::vision::ocr::TextEngine;
 
@@ -36,29 +35,34 @@ pub fn get_text_engine() -> &'static TextEngine {
 
 #[tokio::main]
 async fn main() {
-	let store = Arc::new(RwLock::new(Store::new()));
-	let state = Arc::new(SharedState::new());
-	let listen_state = Arc::clone(&state);
-	let store_embed = Arc::clone(&store);
-	let store_vision = Arc::clone(&store);
+	let connection = database::connect().await;
+	let settings = settings::loader::load_settings_or_default();
+	settings::loader::set_settings(settings);
+	let db = Arc::new(connection);
+	// Model::delete_all(&db).await;
 
-	let (vision_sender, vision_receiver) = mpsc::channel::<Signal>(BUFFER_SIZE);
-	let (embed_sender, embed_receiver) = mpsc::channel::<Signal>(BUFFER_SIZE);
-	let (llm_sender, llm_receiver) = mpsc::channel::<Signal>(BUFFER_SIZE);
+	let extract_db = Arc::clone(&db);
+	let typer_db = Arc::clone(&db);
+	let vision_db = Arc::clone(&db);
+	let console_db = Arc::clone(&db);
 
-	tasks::tracker::run(vision_sender, llm_sender, listen_state).await;
+	let double_buffer_size = BUFFER_SIZE * 2;
+	let (vision_sender, vision_receiver) = mpsc::channel::<Signal>(double_buffer_size);
+	let (extract_sender, extract_receiver) = mpsc::channel::<Signal>(double_buffer_size);
+	let (typer_sender, typer_receiver) = mpsc::channel::<Signal>(BUFFER_SIZE);
 
-	// tasks::vision::run(vision_receiver, embed_sender, store_vision).await;
-	// tasks::embed::run(embed_receiver, store_embed).await;
+	tasks::tracker::start_keyboard_listener(vision_sender, typer_sender).await;
+
 	tokio::spawn(async move {
-		tasks::vision::run(vision_receiver, embed_sender, store_vision).await;
+		tasks::vision::start_vision_listener(vision_receiver, extract_sender, vision_db).await;
 	});
 
 	tokio::spawn(async move {
-		tasks::embed::run(embed_receiver, store_embed).await;
+		tasks::vision::start_extract_listener(extract_receiver, extract_db).await;
 	});
-
-	llm::chat_loop(store.clone()).await.unwrap();
-	// let ai_state = Arc::clone(&state);
-	// runtime::ai::stream_suggestion(ai_state, store, llm_receiver).await;
+	// help_info!("haha, everything working...");
+	tokio::spawn(async move {
+		tasks::typer::autocomplete_listener(typer_receiver, typer_db).await;
+	});
+	console::console(console_db).await.unwrap();
 }
