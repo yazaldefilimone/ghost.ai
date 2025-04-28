@@ -1,13 +1,10 @@
-use std::path::PathBuf;
-
 use image::DynamicImage;
 use ocrs::{ImageSource, OcrEngine, OcrEngineParams};
 use rten::Model;
 
-use crate::{
-	constants::{DETECTION_MODEL, RECOGNITION_MODEL},
-	vision_info,
-};
+use crate::vision_info;
+
+use super::model;
 
 pub struct TextEngine {
 	inner: OcrEngine,
@@ -15,8 +12,10 @@ pub struct TextEngine {
 
 impl TextEngine {
 	pub fn new() -> Self {
-		let detection = Model::load_file(Self::model_path(DETECTION_MODEL)).unwrap();
-		let recognition = Model::load_file(Self::model_path(RECOGNITION_MODEL)).unwrap();
+		let detection_model = model::detection_model_path();
+		let recognition_model = model::recognition_model_path();
+		let detection = Model::load_file(detection_model).unwrap();
+		let recognition = Model::load_file(recognition_model).unwrap();
 		let engine = OcrEngine::new(OcrEngineParams {
 			detection_model: Some(detection),
 			recognition_model: Some(recognition),
@@ -46,12 +45,6 @@ impl TextEngine {
 			.filter(|line| line.to_string().len() > 1)
 			.map(|line| line.to_string())
 			.collect()
-	}
-
-	fn model_path(file: &str) -> PathBuf {
-		let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-		path.push(file);
-		path
 	}
 }
 

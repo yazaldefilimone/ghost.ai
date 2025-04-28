@@ -2,7 +2,7 @@ use once_cell::sync::OnceCell;
 use std::fs;
 
 use super::schema::Settings;
-use crate::{config_error, config_info, utils::config_file_path};
+use crate::{config_error, utils::config_file_path};
 
 static SETTINGS: OnceCell<Settings> = OnceCell::new();
 
@@ -40,7 +40,7 @@ pub fn read_settings() -> Option<Settings> {
 pub fn load_settings_or_default() -> Settings {
 	read_settings().unwrap_or_else(|| {
 		let default = Settings::default();
-		config_info!("no settings found, using default");
+		// config_info!("no settings found, using default");
 		write_settings(&default);
 		default
 	})
@@ -59,7 +59,5 @@ pub fn write_settings(settings: &Settings) {
 
 	if let Err(err) = fs::write(&path, toml_string) {
 		config_error!("failed to save settings to '{}': {}", path.display(), err);
-	} else {
-		config_info!("saved to '{}'", path.display());
 	}
 }

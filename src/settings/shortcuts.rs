@@ -1,4 +1,4 @@
-use crate::utils::key_to_macos_string;
+use crate::utils::key_to_platform_string;
 use rdev::Key;
 use serde::{Deserialize, Serialize};
 
@@ -28,14 +28,14 @@ impl Shortcuts {
 	// todo: bro, what is this? please, refactor :)
 	pub fn look_shortcut(&self, pressed: &[Key]) -> bool {
 		let look = &self.get_current().look;
-		let text = pressed.iter().map(key_to_macos_string).collect::<Vec<_>>().join("+");
+		let text = pressed.iter().map(key_to_platform_string).collect::<Vec<_>>().join("+");
 		look.to_lowercase().trim() == text.to_lowercase().trim()
 	}
 
 	// todo: bro, what is this? please, refactor :)
 	pub fn autocomplete_shortcut(&self, pressed: &[Key]) -> bool {
 		let autocomplete = &self.get_current().autocomplete;
-		let text = pressed.iter().map(key_to_macos_string).collect::<Vec<_>>().join("+");
+		let text = pressed.iter().map(key_to_platform_string).collect::<Vec<_>>().join("+");
 		autocomplete.to_lowercase().trim() == text.to_lowercase().trim()
 	}
 
@@ -43,7 +43,7 @@ impl Shortcuts {
 	// todo: bro, what is this? please, refactor :)
 	pub fn hear_shortcut(&self, pressed: &[Key]) -> bool {
 		let hear = &self.get_current().hear;
-		let text = pressed.iter().map(key_to_macos_string).collect::<Vec<_>>().join("+");
+		let text = pressed.iter().map(key_to_platform_string).collect::<Vec<_>>().join("+");
 		hear.to_lowercase().trim() == text.to_lowercase().trim()
 	}
 }
@@ -58,13 +58,13 @@ pub struct ShortcutMap {
 impl Default for ShortcutMap {
 	fn default() -> Self {
 		#[cfg(target_os = "macos")]
-		return Self { look: "cmd+l".into(), autocomplete: "cmd+a".into(), hear: "cmd+h".into() };
+		return Self { look: "cmd+v".into(), autocomplete: "cmd+a".into(), hear: "cmd+h".into() };
 
 		#[cfg(any(target_os = "windows", target_os = "linux"))]
-		return Self { look: "ctrl+l".into(), autocomplete: "ctrl+a".into(), hear: "ctrl+h".into() };
+		return Self { look: "ctrl+v".into(), autocomplete: "ctrl+a".into(), hear: "ctrl+h".into() };
 
 		#[cfg(target_os = "linux")]
-		return Self { look: "ctrl+l".into(), autocomplete: "ctrl+a".into(), hear: "ctrl+h".into() };
+		return Self { look: "ctrl+v".into(), autocomplete: "ctrl+a".into(), hear: "ctrl+h".into() };
 	}
 }
 

@@ -12,7 +12,7 @@ pub enum Severity {
 	Error,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Module {
 	#[serde(rename = "vision")]
 	Vision,
@@ -55,12 +55,12 @@ impl Display for Module {
 }
 
 pub fn log(severity: Severity, module: Module, msg: String) {
-	if severity != Severity::Error {
-		return;
+	// todo
+	if severity == Severity::Error || (severity == Severity::Info && module == Module::Config) {
+		let now = chrono::Local::now().format("%H:%M:%S").to_string().dimmed();
+		let formatted = format!("{} [{}] {}", now, module, severity);
+		println!("{}: {}", formatted, msg);
 	}
-	let now = chrono::Local::now().format("%H:%M:%S").to_string().dimmed();
-	let formatted = format!("{} [{}] {}", now, module, severity);
-	println!("{}: {}", formatted, msg);
 }
 
 #[macro_export]

@@ -1,9 +1,12 @@
+use clap::Parser;
+use cli::{Cli, Commands};
+use migration::MigratorTrait;
 use once_cell::sync::Lazy;
 use signal::{Signal, BUFFER_SIZE};
 use std::sync::{atomic::AtomicBool, Arc};
 use tokio::sync::mpsc;
-
 mod api;
+mod cli;
 mod console;
 mod constants;
 mod database;
@@ -33,8 +36,20 @@ pub fn get_text_engine() -> &'static TextEngine {
 	&OCR_ENGINE
 }
 
-#[tokio::main]
-async fn main() {
+async fn run_init() {
+	let _ = settings::loader::load_settings_or_default();
+	let connection = database::connect().await;
+	config_info!("running database migrations...");
+	match migration::Migrator::up(&connection, None).await {
+		Ok(_) => {}
+		Err(e) => config_error!("database migrations failed, reason: {}", e),
+	}
+	config_info!("running setup vision engine...");
+	vision::model::run_init_vision().await;
+	config_info!("ok. now run 'ghost run' to start.");
+}
+
+async fn run_ghost() {
 	let connection = database::connect().await;
 	let settings = settings::loader::load_settings_or_default();
 	settings::loader::set_settings(settings);
@@ -65,4 +80,18 @@ async fn main() {
 		tasks::typer::autocomplete_listener(typer_receiver, typer_db).await;
 	});
 	console::console(console_db).await.unwrap();
+}
+
+#[tokio::main]
+async fn main() {
+	let cli = Cli::parse();
+	match cli.command {
+		Some(Commands::Init) => {
+			run_init().await;
+		}
+		Some(Commands::Run) => {
+			run_ghost().await;
+		}
+		None => {}
+	}
 }
