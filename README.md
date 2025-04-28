@@ -54,9 +54,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 You can install Ghost via Cargo:
 
 ```sh
-
-cargo install ghostai
-
+cargo install ghostai@0.2.1-beta
 ```
 
 ### Setup vision and settings
