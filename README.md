@@ -1,6 +1,6 @@
 # Ghost
 
-A second brain for your computer: vision, hear, memory, smart writing — all locally.
+A second brain for your computer: vision, hear, memory, smart writing — all locally by default.
 
 ## Index
 
@@ -30,13 +30,14 @@ Ghost is blindly influenced by [Guillermo Rauch's vision](https://x.com/rauchg/s
 
 ## Important Notes
 
-- Ghost is still in **early prototype** stage.
+- Ghost is still in **bate** stage.
 - Only tested on **macOS**. Other Unix systems should work with small tweaks.
 - OCR currently supports **English only**.
 - Sensitive data handling: supports **skip patterns** and **skip app filters**.
 - The **audio system for meetings and calls** (`hear`) is **under active development** and will arrive in future versions.
 - Ghost includes a **terminal chat interface** to interact with your memories like a private ChatGPT.
 - Local LLMs are recommended (default: [Ollama](https://ollama.com/)).
+- All data are store at `.config/ghost/.data.db`
 
 ## Install
 
@@ -55,24 +56,15 @@ You can install Ghost via Cargo:
 cargo install ghostai
 ```
 
-### Download OCR models
-
-Run:
+### Setup vision and settings
 
 ```bash
-./scripts/download-models.sh
+ghost init
 ```
-
-This will download:
-
-- `text-detection.rten`
-- `text-recognition.rten`
-
-into the `./models/` folder.
 
 ### Install and configure Ollama
 
-Ghost uses [Ollama](https://ollama.com/) to run local LLMs.
+Ghost uses [Ollama](https://ollama.com/) by default to run local LLMs.
 Make sure Ollama is installed and running.
 
 Default model:
@@ -97,25 +89,20 @@ Allow your terminal or IDE to:
 ### Running Ghost
 
 ```bash
-cargo run
+ghost run
 ```
 
 Ghost will start capturing frames, extracting text, building memory, and listening for input.
-
-Performance:
-
-- On an M3 Mac (16 GB RAM), each frame processing takes around **10 seconds**.
 
 ## Usage
 
 - Open any window (browser, terminal, PDF, editor, etc.).
 - Ghost captures visible content automatically.
-- While typing, Ghost may suggest completions based on what you just saw.
+- While typing, you can use shortcuts to ghost may suggest completions based on what you just saw.
 - You can chat with your memory via the terminal:
 
 ```bash
-cargo run
-> What was the article about the best technologies humans have invented?
+chat >> What was the article about the best technologies humans have invented?
 ```
 
 Ghost acts like a **private GPT** that only knows what you have personally seen — not generic internet data.
@@ -124,7 +111,7 @@ Ghost acts like a **private GPT** that only knows what you have personally seen 
 
 Ghost is **deeply customizable**.
 
-Example configuration (`ghost.toml`):
+Example configuration (`.config/ghost/settings.toml`):
 
 ```toml
 name = "Your Name"
