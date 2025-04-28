@@ -190,14 +190,15 @@ dependencies = [
 
 [[package]]
 name = "async-executor"
-version = "1.13.1"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30ca9a001c1e8ba5149f91a74362376cc6bc5b919d92d988668657bd570bdcec"
+checksum = "bb812ffb58524bdd10860d7d974e2f01cc0950c2438a74ee5ec2e2280c6c4ffa"
 dependencies = [
  "async-task",
  "concurrent-queue",
  "fastrand",
  "futures-lite",
+ "pin-project-lite",
  "slab",
 ]
 
@@ -1529,8 +1530,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ghost_migration"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efb5ac7350351bb528321eff4bd5bfe10cc411f3d5c2d2f8f81bde7b2d092e02"
+dependencies = [
+ "async-std",
+ "dirs",
+ "sea-orm-migration",
+]
+
+[[package]]
 name = "ghostai"
-version = "0.2.0"
+version = "0.2.0-beta"
 dependencies = [
  "async-stream",
  "axum",
@@ -1545,8 +1557,8 @@ dependencies = [
  "fs_extra",
  "futures",
  "futures-util",
+ "ghost_migration",
  "image 0.25.6",
- "migration",
  "ocrs",
  "once_cell",
  "rdev",
@@ -2336,15 +2348,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd3f7eed9d3848f8b98834af67102b720745c4ec028fcd0aa0239277e7de374f"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "migration"
-version = "0.1.0"
-dependencies = [
- "async-std",
- "dirs",
- "sea-orm-migration",
 ]
 
 [[package]]

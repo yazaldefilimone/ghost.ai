@@ -1,11 +1,12 @@
 [package]
 name = "ghostai"
-version = "0.2.0"
+version = "0.2.0-beta"
 edition = "2021"
 description = "Your second brain at the computer."
 authors = ["Yazalde Filimone <yazaldefilimon@gmail.com>"]
 repository = "https://github.com/yazaldefilimone/ghost.ai"
 license = "Apache-2.0"
+publish = true
 
 [[bin]]
 name = "ghost"
@@ -43,8 +44,7 @@ tokio-stream = "0.1.17"
 colored = "3.0.0"
 crossterm = "0.29.0"
 clap = { version = "4.5.37", features = ["derive"] }
-migration = { path = "migration" }
-
+ghost_migration = "0.1.0"
 [profile.release]
 lto = "fat"
 opt-level = 3
