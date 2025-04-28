@@ -158,7 +158,11 @@ hear = "cmd+h"
 
 ### Key Configuration Options:
 
-- **Multiple Providers/Models**: each stage (embedding, autocomplete, chat, hearing) can use a different model.
+- Each stage (`embedding`, `autocomplete`, `chat`, `hearing`) can use a different model from different providers.
+-Supported providers: [anthropic](https://www.anthropic.com/), [google](https://deepmind.google/technologies/gemini/), [openai](https://openai.com/), [groq](https://groq.com/), [ollama](https://ollama.com/), [together](https://together.ai/)
+- It is strongly recommended to use an **instruction-tuned** model (like `mistral-instruct` or `gpt-3.5-turbo`) for better sentence completions.
+- Avoid using "reasoning" or "chat" oriented models for autocomplete tasks.
+
 - **Skip App**: skip specified apps (VSCode, Zed, etc.).
   - Case-insensitive — "code", "Code", or "CoDe" will all match.
 - **Skip Patterns**: filters to avoid capturing sensitive content.
