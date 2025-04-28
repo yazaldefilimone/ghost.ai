@@ -1,6 +1,6 @@
 [package]
 name = "ghostai"
-version = "0.2.0-beta"
+version = "0.2.1-beta"
 edition = "2021"
 description = "Your second brain at the computer."
 authors = ["Yazalde Filimone <yazaldefilimon@gmail.com>"]

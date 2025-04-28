@@ -33,7 +33,7 @@ fn handle_event(
 	match event.event_type {
 		EventType::ButtonPress(Button::Left) => {
 			// Optional: trigger vision on mouse click
-			// let _ = vision.try_send(Signal::ForceCapture);
+			let _ = vision.try_send(Signal::ForceCapture);
 		}
 
 		EventType::KeyRelease(key) => {

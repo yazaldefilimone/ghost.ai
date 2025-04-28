@@ -1542,7 +1542,7 @@ dependencies = [
 
 [[package]]
 name = "ghostai"
-version = "0.2.0-beta"
+version = "0.2.1-beta"
 dependencies = [
  "async-stream",
  "axum",

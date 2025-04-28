@@ -51,6 +51,7 @@ pub fn show_help() {
 	println!(".chat - start a chat");
 	println!(".exit - exit the console");
 	println!(".delete - delete memories");
+	println!(".count - count memory entries");
 	println!(".clear - clear the screen");
 	stdout().flush().unwrap();
 }
@@ -68,6 +69,10 @@ async fn chat_console(db: Arc<DbConn>) -> Result<()> {
 	let llm = build_provider(model, None, None);
 	loop {
 		let input = read_line("chat >> ")?;
+
+		if input.is_empty() {
+			continue;
+		}
 		if input == ".exit" {
 			break;
 		}
@@ -75,6 +80,7 @@ async fn chat_console(db: Arc<DbConn>) -> Result<()> {
 			show_chat_help();
 			continue;
 		}
+
 		if !input.is_empty() {
 			print!("ghost:");
 			stdout().flush().unwrap();
@@ -113,6 +119,10 @@ pub async fn console(db: Arc<DbConn>) -> Result<()> {
 			}
 			".clear" => {
 				show_help();
+			}
+			".count" => {
+				let count = Model::get_all(&db).await.len();
+				println!("count: {}", count);
 			}
 			".exit" => {
 				println!("Bye!");

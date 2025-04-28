@@ -31,6 +31,16 @@ pub struct Model {
 
 impl Model {
 	pub async fn insert_entry(db: &DatabaseConnection, data: ActiveModel) -> Model {
+		// if exists, skip
+		let exists = Entity::find()
+			.filter(Column::AppName.eq(data.app_name.clone().unwrap()))
+			.filter(Column::WindowTitle.eq(data.window_title.clone().unwrap()))
+			.one(db)
+			.await
+			.unwrap_or_else(|_| panic!("Failed to insert entry"));
+		if let Some(exists) = exists {
+			return exists;
+		}
 		data.insert(db).await.unwrap_or_else(|_| panic!("Failed to insert entry"))
 	}
 
