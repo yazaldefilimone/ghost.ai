@@ -26,7 +26,7 @@ Ghost supports three main flows:
 
 Ghost is modular and highly configurable — each memory stage (vision, chat, autocomplete, hearing) can be powered by different models, locally or remotely.
 
-Ghost is blindly influenced by [Guillermo Rauch's vision](https://x.com/rauchg/status/1903528336241861113), but built with full offline privacy in mind.
+> Ghost is blindly influenced by [Guillermo Rauch's vision](https://x.com/rauchg/status/1903528336241861113), but built with full offline privacy in mind.
 
 ## Important Notes
 
@@ -43,7 +43,8 @@ Ghost is blindly influenced by [Guillermo Rauch's vision](https://x.com/rauchg/s
 
 ### Install dependencies
 
-```bash
+```sh
+
 # Install Rust if you haven't already.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
@@ -52,13 +53,16 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 You can install Ghost via Cargo:
 
-```bash
+```sh
+
 cargo install ghostai
+
 ```
 
 ### Setup vision and settings
 
-```bash
+```sh
+
 ghost init
 ```
 
@@ -69,7 +73,8 @@ Make sure Ollama is installed and running.
 
 Default model:
 
-```bash
+```sh
+
 ollama run mistral:7b-instruct
 ```
 
@@ -88,7 +93,8 @@ Allow your terminal or IDE to:
 
 ### Running Ghost
 
-```bash
+```sh
+
 ghost run
 ```
 
@@ -101,7 +107,8 @@ Ghost will start capturing frames, extracting text, building memory, and listeni
 - While typing, you can use shortcuts to ghost may suggest completions based on what you just saw.
 - You can chat with your memory via the terminal:
 
-```bash
+```sh
+
 chat >> What was the article about the best technologies humans have invented?
 ```
 
@@ -114,6 +121,7 @@ Ghost is **deeply customizable**.
 Example configuration (`.config/ghost/settings.toml`):
 
 ```toml
+
 name = "Your Name"
 language = "en"
 
