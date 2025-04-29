@@ -58,13 +58,17 @@ pub struct ShortcutMap {
 impl Default for ShortcutMap {
 	fn default() -> Self {
 		#[cfg(target_os = "macos")]
-		return Self { look: "cmd+v".into(), autocomplete: "cmd+a".into(), hear: "cmd+h".into() };
-
-		#[cfg(any(target_os = "windows", target_os = "linux"))]
-		return Self { look: "ctrl+v".into(), autocomplete: "ctrl+a".into(), hear: "ctrl+h".into() };
-
+		{
+			return Self { look: "cmd+v".into(), autocomplete: "cmd+a".into(), hear: "cmd+h".into() };
+		}
+		#[cfg(target_os = "windows")]
+		{
+			return Self { look: "ctrl+v".into(), autocomplete: "ctrl+a".into(), hear: "ctrl+h".into() };
+		}
 		#[cfg(target_os = "linux")]
-		return Self { look: "ctrl+v".into(), autocomplete: "ctrl+a".into(), hear: "ctrl+h".into() };
+		{
+			return Self { look: "ctrl+v".into(), autocomplete: "ctrl+a".into(), hear: "ctrl+h".into() };
+		}
 	}
 }
 
