@@ -2,6 +2,8 @@
 
 A second brain for your computer: vision, hear, memory, smart writing — all locally by default.
 
+You can see [demo here](https://x.com/yazaldefilimone/status/1916957999542788313)
+
 ## Index
 
 1. [Introduction](#introduction)
