@@ -29,18 +29,18 @@ pub fn read_settings() -> Option<Settings> {
 	if content.trim().is_empty() {
 		return None;
 	}
-
-	toml::from_str::<Settings>(&content)
-		.map_err(|err| {
+	match toml::from_str::<Settings>(&content) {
+		Ok(settings) => Some(settings),
+		Err(err) => {
 			config_error!("failed to parse '{}': {}", path.display(), err);
-		})
-		.ok()
+			std::process::exit(1);
+		}
+	}
 }
 
 pub fn load_settings_or_default() -> Settings {
 	read_settings().unwrap_or_else(|| {
 		let default = Settings::default();
-		// config_info!("no settings found, using default");
 		write_settings(&default);
 		default
 	})

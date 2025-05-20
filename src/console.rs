@@ -76,6 +76,7 @@ async fn chat_console(db: Arc<DbConn>) -> Result<()> {
 		if input == ".exit" {
 			break;
 		}
+
 		if input == ".clear" {
 			show_chat_help();
 			continue;

@@ -30,8 +30,12 @@ pub fn build_provider(
 			let agent = agent.build();
 			Provider::Anthropic(AnthropicProvider { agent })
 		}
-		LlmModel::Google { model, .. } => {
-			let client = providers::gemini::Client::from_env();
+		LlmModel::Google { model, api_key } => {
+			let api_key = api_key.as_ref().unwrap_or_else(|| {
+				llm_error!("Google API key not found");
+				std::process::exit(1);
+			});
+			let client = providers::gemini::Client::new(api_key);
 			let mut agent = client.agent(model.as_str());
 			if let Some(temperature) = temperature {
 				agent = agent.temperature(temperature)
